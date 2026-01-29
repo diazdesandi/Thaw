@@ -21,7 +21,9 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 
     /// Overridden to always be `true`.
-    override var canBecomeKey: Bool { true }
+    override var canBecomeKey: Bool {
+        true
+    }
 
     /// Creates a menu bar appearance editor panel.
     init() {
@@ -96,13 +98,53 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
 // MARK: - MenuBarAppearanceEditorHostingView
 
 private final class MenuBarAppearanceEditorHostingView: NSHostingView<MenuBarAppearanceEditorContentView> {
+    private var appState: AppState?
+    private var cancellables = Set<AnyCancellable>()
+
     override var intrinsicContentSize: CGSize {
-        CGSize(width: 550, height: 600)
+        guard let appState = appState else {
+            return CGSize(width: 500, height: 655)
+        }
+        let isDynamic = appState.appearanceManager.configuration.isDynamic
+        let height: CGFloat = isDynamic ? 655 : 445
+        return CGSize(width: 500, height: height)
     }
 
     init(appState: AppState) {
+        self.appState = appState
         super.init(rootView: MenuBarAppearanceEditorContentView(appState: appState))
         setFrameSize(intrinsicContentSize)
+
+        // Observe changes to the appearance configuration to update window size
+        appState.appearanceManager.$configuration
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+
+                // Wait for the next run loop cycle to ensure SwiftUI has updated
+                DispatchQueue.main.async {
+                    // Force a layout pass to ensure content is updated
+                    self.layoutSubtreeIfNeeded()
+
+                    // Get the new size after content update
+                    let newSize = self.intrinsicContentSize
+
+                    // Update the hosting view size
+                    self.setFrameSize(newSize)
+
+                    // Update the window size with animation
+                    if let window = self.window {
+                        let currentFrame = window.frame
+                        let newFrame = NSRect(
+                            x: currentFrame.origin.x,
+                            y: currentFrame.origin.y + (currentFrame.height - newSize.height),
+                            width: newSize.width,
+                            height: newSize.height
+                        )
+                        window.setFrame(newFrame, display: true, animate: true)
+                    }
+                }
+            }
+            .store(in: &cancellables)
     }
 
     @available(*, unavailable)

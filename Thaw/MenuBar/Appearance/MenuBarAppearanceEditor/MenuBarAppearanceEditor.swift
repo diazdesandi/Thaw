@@ -39,19 +39,19 @@ struct MenuBarAppearanceEditor: View {
         } else if #available(macOS 26.0, *) {
             mainForm
                 .scrollEdgeEffectStyle(.hard, for: .vertical)
+                .padding(.top, 10)
         } else {
             mainForm
+                .padding(.top, 10)
         }
     }
 
-    @ViewBuilder
     private var cannotEdit: some View {
         Text("\(Bundle.main.displayName) cannot edit the appearance of automatically hidden menu bars.")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
-    @ViewBuilder
     private var mainForm: some View {
         IceForm {
             if
@@ -79,7 +79,6 @@ struct MenuBarAppearanceEditor: View {
         }
     }
 
-    @ViewBuilder
     private var bottomBar: some View {
         HStack {
             if case .panel = location {
@@ -111,16 +110,14 @@ struct MenuBarAppearanceEditor: View {
             }
         }
         .buttonBorderShape(.capsule)
-        .padding(10)
+        .padding(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
     }
 
-    @ViewBuilder
     private var isDynamicToggle: some View {
         Toggle("Use dynamic appearance", isOn: $appearanceManager.configuration.isDynamic)
             .annotation("Apply different settings based on the current system appearance.")
     }
 
-    @ViewBuilder
     private var shapePicker: some View {
         MenuBarShapePicker(configuration: $appearanceManager.configuration)
             .fixedSize(horizontal: false, vertical: true)
@@ -152,7 +149,6 @@ private struct UnlabeledPartialEditor: View {
         }
     }
 
-    @ViewBuilder
     private var tintPicker: some View {
         LabeledContent("Tint") {
             HStack {
@@ -186,12 +182,10 @@ private struct UnlabeledPartialEditor: View {
         }
     }
 
-    @ViewBuilder
     private var shadowToggle: some View {
         Toggle("Shadow", isOn: $configuration.hasShadow)
     }
 
-    @ViewBuilder
     private var borderToggle: some View {
         Toggle("Border", isOn: $configuration.hasBorder)
     }
@@ -240,7 +234,6 @@ private struct LabeledPartialEditor: View {
         }
     }
 
-    @ViewBuilder
     private var labelStack: some View {
         HStack {
             Text(appearance.titleKey)
@@ -293,7 +286,7 @@ private struct PreviewButton: View {
     }
 
     var body: some View {
-        Button("Hold to Preview") { }
+        Button("Hold to Preview") {}
             .buttonStyle(PreviewButtonStyle(isPressed: $isPressed))
             .onChange(of: isPressed) {
                 manager.previewConfiguration = isPressed ? previewConfiguration : nil
