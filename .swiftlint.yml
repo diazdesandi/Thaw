@@ -58,8 +58,11 @@ file_header:
   required_pattern: |-
     //
     //  SWIFTLINT_CURRENT_FILENAME
-    //  Thaw
+    //  Project: Thaw
     //
+    //  Copyright \(Ice\) © 2023–2025 Jordan Baird
+    //  Copyright \(Thaw\) © 2026 Toni Förster
+    //  Licensed under the GNU GPLv3
 
 modifier_order:
   preferred_modifier_order:

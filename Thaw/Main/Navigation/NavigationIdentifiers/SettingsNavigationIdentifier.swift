@@ -1,7 +1,10 @@
 //
 //  SettingsNavigationIdentifier.swift
-//  Thaw
+//  Project: Thaw
 //
+//  Copyright (Ice) © 2023–2025 Jordan Baird
+//  Copyright (Thaw) © 2026 Toni Förster
+//  Licensed under the GNU GPLv3
 
 /// The navigation identifier type for the "Settings" interface.
 enum SettingsNavigationIdentifier: String, NavigationIdentifier {

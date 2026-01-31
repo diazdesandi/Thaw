@@ -1,7 +1,10 @@
 //
 //  Listener.swift
-//  MenuBarItemService
+//  Project: Thaw
 //
+//  Copyright (Ice) © 2023–2025 Jordan Baird
+//  Copyright (Thaw) © 2026 Toni Förster
+//  Licensed under the GNU GPLv3
 
 import OSLog
 import XPC
@@ -18,7 +21,7 @@ final class Listener {
     private var listener: XPCListener?
 
     /// Creates the shared listener.
-    private init() { }
+    private init() {}
 
     deinit {
         cancel()
@@ -32,7 +35,7 @@ final class Listener {
             case .start:
                 Logger.default.debug("Listener received start request")
                 return .start
-            case .sourcePID(let window):
+            case let .sourcePID(window):
                 let pid = SourcePIDCache.shared.pid(for: window)
                 return .sourcePID(pid)
             }

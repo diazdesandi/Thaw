@@ -1,7 +1,10 @@
 //
 //  SourcePIDCache.swift
-//  MenuBarItemService
+//  Project: Thaw
 //
+//  Copyright (Ice) © 2023–2025 Jordan Baird
+//  Copyright (Thaw) © 2026 Toni Förster
+//  Licensed under the GNU GPLv3
 
 import AXSwift
 import Cocoa
@@ -46,8 +49,8 @@ final class SourcePIDCache {
             // These checks help prevent blocking that can occur when
             // calling AX APIs while the app is an invalid state.
             runningApp.isFinishedLaunching &&
-            !runningApp.isTerminated &&
-            !Bridging.isProcessUnresponsive(processIdentifier)
+                !runningApp.isTerminated &&
+                !Bridging.isProcessUnresponsive(processIdentifier)
         }
 
         /// Creates a `CachedApplication` instance with the given running
@@ -90,7 +93,7 @@ final class SourcePIDCache {
         private func stableBounds(for window: WindowInfo) -> CGRect? {
             var cachedBounds = window.bounds
 
-            for n in 1...5 {
+            for n in 1 ... 5 {
                 guard let currentBounds = window.currentBounds() else {
                     // Failure here means the window probably doesn't
                     // exist anymore.
@@ -194,12 +197,12 @@ final class SourcePIDCache {
             // Clean up entries for terminated apps to prevent memory leaks
             let oldAppPids = Set(state.apps.map(\.processIdentifier))
             let terminatedPids = oldAppPids.subtracting(currentAppPids)
-            
+
             // Remove PID mappings for terminated apps
             for terminatedPid in terminatedPids {
                 state.pids = state.pids.filter { $0.value != terminatedPid }
             }
-            
+
             // Convert the cached state to dictionaries keyed by pid to
             // allow for efficient repeated access.
             let appMappings = state.apps.reduce(into: [:]) { result, app in
@@ -225,10 +228,10 @@ final class SourcePIDCache {
                 }
 
                 if let pids = pidMappings[pid] {
-                    result.pids.merge(pids) { (_, new) in new }
+                    result.pids.merge(pids) { _, new in new }
                 }
             }
-            
+
             // Log cleanup activity
             if !terminatedPids.isEmpty {
                 Logger.default.info("Cleaned up PID cache entries for terminated processes: \(terminatedPids)")

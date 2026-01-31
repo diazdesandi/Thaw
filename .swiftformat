@@ -15,7 +15,7 @@
 --trailing-commas always
 
 # --header: Matches 'file_header' rule.
---header "//\n//  {file}\n//  Thaw\n//"
+--header "//\n//  {file}\n//  Project: Thaw\n//\n//  Copyright (Ice) © 2023–2025 Jordan Baird\n//  Copyright (Thaw) © 2026 Toni Förster\n//  Licensed under the GNU GPLv3"
 
 # --enable isEmpty: Opt-in rule to match SwiftLint's 'empty_count'.
 --enable isEmpty
