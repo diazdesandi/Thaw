@@ -298,6 +298,9 @@ final class AppState: ObservableObject {
                 if count < self.lastKnownScreenCount {
                     self.logger.warning("Detected display disconnect; restarting app to avoid stale state")
                     self.restartSelf()
+                } else if count > self.lastKnownScreenCount {
+                    self.logger.warning("Detected display connect; restarting app to refresh state")
+                    self.restartSelf()
                 }
             }
             .store(in: &c)
