@@ -24,12 +24,15 @@ final class HIDEventManager: ObservableObject {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    /// History of the manager's enabled states.
-    private var enabledStateStack = [Bool]()
+    /// The number of times the manager has been told to stop.
+    private var disableCount = 0
 
     /// A Boolean value that indicates whether the manager is enabled.
     private var isEnabled = false {
         didSet {
+            guard isEnabled != oldValue else {
+                return
+            }
             if isEnabled {
                 for monitor in allMonitors {
                     monitor.start()
@@ -179,21 +182,20 @@ final class HIDEventManager: ObservableObject {
 
     /// Starts all monitors.
     func startAll() {
-        isEnabled = enabledStateStack.popLast() ?? true
+        if disableCount > 0 {
+            disableCount -= 1
+        }
+        if disableCount == 0 {
+            isEnabled = true
+        }
     }
 
     /// Stops all monitors.
     func stopAll() {
-        // Prevent unbounded growth of the stack
-        if enabledStateStack.count > 10 {
-            // If we're nesting this deep, something is probably wrong, but we should cap it.
-            // We just drop the oldest state, assuming it was 'true' (default).
-            if enabledStateStack.indices.contains(0) {
-                enabledStateStack.removeFirst()
-            }
+        if disableCount == 0 {
+            isEnabled = false
         }
-        enabledStateStack.append(isEnabled)
-        isEnabled = false
+        disableCount += 1
     }
 }
 
