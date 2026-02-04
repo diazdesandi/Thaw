@@ -390,12 +390,8 @@ final class ControlItem {
                     updateStatusItemVisibility(true)
                     button.appearsDisabled = false
 
-                    button.image = switch identifier {
-                    case .hidden:
-                        ControlItemImage.builtin(.chevronLarge).nsImage(for: appState)
-                    case .alwaysHidden:
-                        ControlItemImage.builtin(.chevronSmall).nsImage(for: appState)
-                    case .visible: nil
+                    if identifier != .visible {
+                        button.image = ControlItemImage.builtin(.chevronSmall).nsImage(for: appState)
                     }
                 }
             case .hideSection:
