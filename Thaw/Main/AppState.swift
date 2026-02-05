@@ -250,6 +250,7 @@ final class AppState: ObservableObject {
                     }
                 } else {
                     self.openWindows.remove(.settings)
+                    self.deactivate(withPolicy: .accessory)
                 }
             }
             .store(in: &c)
