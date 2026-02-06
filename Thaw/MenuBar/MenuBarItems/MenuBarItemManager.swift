@@ -76,6 +76,8 @@ final class MenuBarItemManager: ObservableObject {
 
     /// Persisted identifiers of menu bar items we've already seen.
     private var knownItemIdentifiers = Set<String>()
+    /// Suppresses the next automatic relocation of newly seen leftmost items.
+    private var suppressNextNewLeftmostItemRelocation = false
     /// Persisted bundle identifiers explicitly placed in hidden section.
     private var pinnedHiddenBundleIDs = Set<String>()
     /// Persisted bundle identifiers explicitly placed in always-hidden section.
@@ -123,6 +125,9 @@ final class MenuBarItemManager: ObservableObject {
         self.appState = appState
         loadKnownItemIdentifiers()
         loadPinnedBundleIDs()
+        // On first launch (no known identifiers), avoid auto-relocating the leftmost item
+        // so everything remains in the hidden section until the user interacts.
+        suppressNextNewLeftmostItemRelocation = knownItemIdentifiers.isEmpty
         await cacheItemsRegardless()
         configureCancellables(with: appState)
         configureCacheTick()
@@ -1766,6 +1771,18 @@ extension MenuBarItemManager {
     ) async -> Bool {
         guard appState != nil else { return false }
 
+        if suppressNextNewLeftmostItemRelocation {
+            // Seed known identifiers so these baseline items won't be treated as "new"
+            // on subsequent cache passes, then clear the suppression flag.
+            let identifiers = items
+                .filter { !$0.isControlItem }
+                .map { "\($0.tag.namespace):\($0.tag.title)" }
+            knownItemIdentifiers.formUnion(identifiers)
+            persistKnownItemIdentifiers()
+            suppressNextNewLeftmostItemRelocation = false
+            return false
+        }
+
         // Avoid relocating items already assigned to hidden/always-hidden sections.
         let hiddenTags = Set(itemCache[.hidden].map(\.tag))
         let alwaysHiddenTags = Set(itemCache[.alwaysHidden].map(\.tag))
@@ -2019,6 +2036,9 @@ extension MenuBarItemManager {
         persistPinnedBundleIDs()
         temporarilyShownItemContexts.removeAll()
 
+        // Prevent the first post-reset cache pass from treating the freshly reset items as "new".
+        suppressNextNewLeftmostItemRelocation = true
+
         var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
 
         guard let controlItems = ControlItemPair(items: &items) else {
@@ -2082,6 +2102,7 @@ extension MenuBarItemManager {
         await cacheActor.clearCachedItemWindowIDs()
         itemCache = ItemCache(displayID: nil)
         await cacheItemsRegardless(skipRecentMoveCheck: true)
+        suppressNextNewLeftmostItemRelocation = false
 
         if let appState {
             await MainActor.run {
