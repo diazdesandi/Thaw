@@ -17,11 +17,11 @@ final class ControlItem {
     /// An identifier for a control item.
     enum Identifier: String, CaseIterable {
         /// The identifier for the control item for the visible section.
-        case visible = "Ice.ControlItem.Visible"
+        case visible = "Thaw.ControlItem.Visible"
         /// The identifier for the control item for the hidden section.
-        case hidden = "Ice.ControlItem.Hidden"
+        case hidden = "Thaw.ControlItem.Hidden"
         /// The identifier for the control item for the always-hidden section.
-        case alwaysHidden = "Ice.ControlItem.AlwaysHidden"
+        case alwaysHidden = "Thaw.ControlItem.AlwaysHidden"
 
         /// A tag for the control item with this identifier.
         var tag: MenuBarItemTag {

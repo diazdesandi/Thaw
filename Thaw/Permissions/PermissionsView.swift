@@ -219,6 +219,10 @@ struct PermissionsView: View {
                         Text("Would you like to import your existing configuration?")
                             .font(.title3)
                             .fontWeight(.medium)
+                        Text("Icon positions cannot be restored.")
+                            .font(.calloutBox)
+                            .fontWeight(.bold)
+                            .foregroundColor(.red)
                     }
                 }
 
@@ -258,6 +262,13 @@ struct PermissionsView: View {
                 // Mark first launch as completed after successful import
                 Defaults.set(true, forKey: .hasCompletedFirstLaunch)
                 showImportIceSettings = true
+
+                // Ensure section dividers are re-added after import by forcing a toggle
+                // of the always-hidden section setting. This recreates control items
+                // even when the setting was previously off.
+                let currentlyEnabled = appState.settings.advanced.enableAlwaysHiddenSection
+                appState.settings.advanced.enableAlwaysHiddenSection = !currentlyEnabled
+                appState.settings.advanced.enableAlwaysHiddenSection = currentlyEnabled
             }
         }
     }

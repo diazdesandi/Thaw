@@ -55,9 +55,6 @@ struct IceSettingsImporter {
         // Import Appearance Settings
         settingsImported += importAppearanceSettings(from: iceSettings)
 
-        // Import control item positions/visibility
-        settingsImported += importControlItemSettings(from: iceUserDefaults)
-
         logger.info("Successfully imported \(settingsImported) settings from Ice")
         return (true, settingsImported)
     }
@@ -162,36 +159,11 @@ struct IceSettingsImporter {
     }
 
     /// Imports control item positions and visibility flags from Ice.
-    private func importControlItemSettings(from iceUserDefaults: UserDefaults) -> Int {
-        var imported = 0
-
-        for identifier in ControlItem.Identifier.allCases {
-            let autosaveName = identifier.rawValue
-
-            let preferredPositionKey = ControlItemDefaults.Key<CGFloat>.preferredPosition.stringKey(for: autosaveName)
-            if let value = iceUserDefaults.object(forKey: preferredPositionKey) as? NSNumber {
-                ControlItemDefaults[.preferredPosition, autosaveName] = CGFloat(value.doubleValue)
-                imported += 1
-                logger.debug("Imported control item position for \(autosaveName)")
-            }
-
-            let visibleKey = ControlItemDefaults.Key<Bool>.visible.stringKey(for: autosaveName)
-            if let visible = iceUserDefaults.object(forKey: visibleKey) as? Bool {
-                ControlItemDefaults[.visible, autosaveName] = visible
-                imported += 1
-                logger.debug("Imported control item visibility for \(autosaveName)")
-            }
-
-            if #available(macOS 26.0, *) {
-                let visibleCCKey = ControlItemDefaults.Key<Bool>.visibleCC.stringKey(for: autosaveName)
-                if let visibleCC = iceUserDefaults.object(forKey: visibleCCKey) as? Bool {
-                    ControlItemDefaults[.visibleCC, autosaveName] = visibleCC
-                    imported += 1
-                    logger.debug("Imported control item Control Center visibility for \(autosaveName)")
-                }
-            }
-        }
-
-        return imported
+    ///
+    /// NOTE: We no longer migrate control item autosave data to avoid
+    /// collapsing sections when macOS repositions status items. Users
+    /// will need to re-place section dividers manually after import.
+    private func importControlItemSettings(from _: UserDefaults) -> Int {
+        return 0
     }
 }
