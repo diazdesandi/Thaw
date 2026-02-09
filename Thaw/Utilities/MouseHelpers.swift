@@ -24,15 +24,27 @@ enum MouseHelpers {
     private static let cursorLock = DispatchQueue(label: "MouseHelpers.cursorLock")
     private static var cursorHideCount = 0
     private static var autoShowWorkItem: DispatchWorkItem?
-    private static let watchdogTimeout: DispatchTimeInterval = .seconds(2)
+    private static let defaultWatchdogTimeout: DispatchTimeInterval = .seconds(1)
 
-    private static func scheduleAutoShow() {
+    private static func formattedTimeout(_ interval: DispatchTimeInterval) -> String {
+        switch interval {
+        case let .seconds(s):
+            return "\(s)s"
+        case .never:
+            return "never"
+        @unknown default:
+            return "unknown"
+        }
+    }
+
+    private static func scheduleAutoShow(after timeout: DispatchTimeInterval = defaultWatchdogTimeout) {
         let workItem = DispatchWorkItem {
             forceShowCursor(reason: "watchdog timeout")
         }
         autoShowWorkItem?.cancel()
         autoShowWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + watchdogTimeout, execute: workItem)
+        Logger.mouseHelpers.debug("Cursor watchdog scheduled for \(formattedTimeout(timeout))")
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: workItem)
     }
 
     private static func cancelAutoShow() {
@@ -65,7 +77,7 @@ enum MouseHelpers {
     }
 
     /// Hides the mouse cursor and increments the hide cursor count.
-    static func hideCursor() {
+    static func hideCursor(watchdogTimeout: DispatchTimeInterval? = nil) {
         var shouldHide = false
         cursorLock.sync {
             cursorHideCount += 1
@@ -79,7 +91,7 @@ enum MouseHelpers {
             Logger.mouseHelpers.error("CGDisplayHideCursor failed with error code \(result.rawValue)")
             cursorLock.sync { cursorHideCount = 0 } // Reset on failure
         } else {
-            scheduleAutoShow()
+            scheduleAutoShow(after: watchdogTimeout ?? defaultWatchdogTimeout)
         }
     }
 

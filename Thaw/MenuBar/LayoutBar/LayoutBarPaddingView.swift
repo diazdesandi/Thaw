@@ -14,6 +14,7 @@ import OSLog
 final class LayoutBarPaddingView: NSView {
     private let container: LayoutBarContainer
     private var isStabilizing = false
+    private let layoutMoveWatchdogTimeout: DispatchTimeInterval = .seconds(6)
 
     /// The layout view's arranged views.
     var arrangedViews: [LayoutBarItemView] {
@@ -122,7 +123,11 @@ final class LayoutBarPaddingView: NSView {
             await MainActor.run { self.showOverlay(true) }
             try await Task.sleep(for: .milliseconds(25))
             do {
-                try await appState.itemManager.move(item: item, to: destination)
+                try await appState.itemManager.move(
+                    item: item,
+                    to: destination,
+                    watchdogTimeout: layoutMoveWatchdogTimeout
+                )
                 appState.itemManager.removeTemporarilyShownItemFromCache(with: item.tag)
                 await stabilizePlacement(of: item, to: destination, expectedSection: container.section, appState: appState)
             } catch {
@@ -159,7 +164,11 @@ final class LayoutBarPaddingView: NSView {
             // Allow macOS a brief moment to settle, then retry once.
             try? await Task.sleep(for: .milliseconds(120))
             do {
-                try await appState.itemManager.move(item: item, to: destination)
+                try await appState.itemManager.move(
+                    item: item,
+                    to: destination,
+                    watchdogTimeout: layoutMoveWatchdogTimeout
+                )
                 await appState.itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
             } catch {
                 Logger.default.error("Stabilize move failed: \(error, privacy: .public)")

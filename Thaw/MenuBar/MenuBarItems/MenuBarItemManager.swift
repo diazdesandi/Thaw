@@ -1288,7 +1288,11 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: The menu bar item to move.
     ///   - destination: The destination to move the item to.
-    func move(item: MenuBarItem, to destination: MoveDestination) async throws {
+    func move(
+        item: MenuBarItem,
+        to destination: MoveDestination,
+        watchdogTimeout: DispatchTimeInterval? = nil
+    ) async throws {
         guard item.isMovable else {
             throw EventError.itemNotMovable(item)
         }
@@ -1317,7 +1321,7 @@ extension MenuBarItemManager {
             return
         }
 
-        MouseHelpers.hideCursor()
+        MouseHelpers.hideCursor(watchdogTimeout: watchdogTimeout)
         defer {
             MouseHelpers.showCursor()
         }
