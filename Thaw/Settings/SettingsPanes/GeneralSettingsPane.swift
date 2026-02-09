@@ -274,7 +274,7 @@ struct GeneralSettingsPane: View {
                 Button("Apply") {
                     applyTempItemSpacingOffset()
                 }
-                .help("Apply the current spacing")
+                .help(Text("Apply the current spacing"))
                 .disabled(isApplyingItemSpacingOffset || tempItemSpacingOffset == settings.itemSpacingOffset)
 
                 if isApplyingItemSpacingOffset {
@@ -290,7 +290,7 @@ struct GeneralSettingsPane: View {
                         Image(systemName: "arrow.counterclockwise.circle.fill")
                     }
                     .buttonStyle(.borderless)
-                    .help("Reset to the default spacing")
+                    .help(Text("Reset to the default spacing"))
                     .disabled(isApplyingItemSpacingOffset || settings.itemSpacingOffset == 0)
                 }
             } label: {

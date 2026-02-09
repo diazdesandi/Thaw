@@ -83,7 +83,7 @@ private struct MenuBarFullShapePicker: View, Equatable {
                 context.fill(Path(context.clipBoundingRect), with: .foreground)
             }
             .resizable()
-            .help("Square Cap")
+            .help(Text("Square Cap"))
             .tag(endCap)
         case .round:
             Image(size: CGSize(width: 12, height: 12)) { context in
@@ -95,7 +95,7 @@ private struct MenuBarFullShapePicker: View, Equatable {
                 context.fill(path1.union(path2), with: .foreground)
             }
             .resizable()
-            .help("Round Cap")
+            .help(Text("Round Cap"))
             .tag(endCap)
         }
     }

@@ -64,7 +64,11 @@ struct MenuBarLayoutSettingsPane: View {
         .overlay {
             if !hasItems {
                 VStack(spacing: 8) {
-                    Text(loadDeadlineReached ? "Unable to load menu bar items" : "Loading menu bar items…")
+                    if loadDeadlineReached {
+                        Text("Unable to load menu bar items")
+                    } else {
+                        Text("Loading menu bar items…")
+                    }
                     if loadDeadlineReached {
                         EmptyView()
                     } else {
@@ -216,11 +220,11 @@ struct MenuBarLayoutSettingsPane: View {
         var message: String {
             switch self {
             case .success:
-                "Layout reset. Items were moved to the Hidden section."
+                String(localized: "Layout reset. Items were moved to the Hidden section.")
             case let .partialFailure(count):
-                "Reset completed with \(count) item(s) that could not be moved. Check the menu bar and try again if needed."
+                String(localized: "Reset completed with \(count) item(s) that could not be moved. Check the menu bar and try again if needed.")
             case let .failure(message):
-                "Reset failed: \(message)"
+                String(localized: "Reset failed: \(message)")
             }
         }
 

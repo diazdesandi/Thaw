@@ -308,7 +308,7 @@ final class MenuBarManager: ObservableObject {
         let menu = NSMenu(title: "\(Constants.displayName)")
 
         let editAppearanceItem = NSMenuItem(
-            title: "Edit Menu Bar Appearance…",
+            title: String(localized: "Edit Menu Bar Appearance…"),
             action: #selector(showAppearanceEditorPanel),
             keyEquivalent: ""
         )
@@ -318,7 +318,7 @@ final class MenuBarManager: ObservableObject {
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(
-            title: "\(Constants.displayName) Settings…",
+            title: String(localized: "\(Constants.displayName) Settings…"),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )

@@ -33,7 +33,7 @@ final class IceBarPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.title = "\(Constants.displayName) Bar"
+        self.title = String(localized: "\(Constants.displayName) Bar")
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
         self.allowsToolTipsWhenApplicationIsInactive = true

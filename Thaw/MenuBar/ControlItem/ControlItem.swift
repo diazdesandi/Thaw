@@ -606,7 +606,7 @@ final class ControlItem {
         let menu = NSMenu(title: Bundle.main.displayName)
 
         let settingsItem = NSMenuItem(
-            title: "\(Constants.displayName) Settings…",
+            title: String(localized: "\(Constants.displayName) Settings…"),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )
@@ -616,7 +616,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let searchItem = NSMenuItem(
-            title: "Search Menu Bar Items",
+            title: String(localized: "Search Menu Bar Items"),
             action: #selector(showSearchPanel),
             keyEquivalent: ""
         )
@@ -640,8 +640,20 @@ final class ControlItem {
             else {
                 continue
             }
+            let sectionTitle = switch (section.isHidden, name) {
+            case (true, .hidden):
+                String(localized: "Show Hidden Section")
+            case (false, .hidden):
+                String(localized: "Hide Hidden Section")
+            case (true, .alwaysHidden):
+                String(localized: "Show Always-Hidden Section")
+            case (false, .alwaysHidden):
+                String(localized: "Hide Always-Hidden Section")
+            default:
+                String(localized: "\(section.isHidden ? "Show" : "Hide") \(name.displayString) Section")
+            }
             let item = NSMenuItem(
-                title: "\(section.isHidden ? "Show" : "Hide") \(name.displayString) Section",
+                title: sectionTitle,
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
@@ -660,7 +672,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
+            title: String(localized: "Check for Updates…"),
             action: #selector(checkForUpdates),
             keyEquivalent: ""
         )
@@ -670,7 +682,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit \(Constants.displayName)",
+            title: String(localized: "Quit \(Constants.displayName)"),
             action: #selector(NSApp.terminate),
             keyEquivalent: "q"
         )

@@ -436,7 +436,7 @@ private struct MenuBarSearchContentView: View {
                 }
 
                 let headerItem = ListItem.header(id: .header(name)) {
-                    Text(name.displayString)
+                    Text(name.localized)
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -535,7 +535,9 @@ private struct ShowItemButton: View {
         Button(action: action) {
             HStack {
                 Text(
-                    "\(Bridging.isWindowOnScreen(item.windowID) ? "Click" : "Show") Item"
+                    Bridging.isWindowOnScreen(item.windowID)
+                        ? String(localized: "Click Item")
+                        : String(localized: "Show Item")
                 )
                 .padding(.leading, 5)
 
