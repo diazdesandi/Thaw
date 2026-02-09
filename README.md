@@ -90,7 +90,7 @@ Thaw is currently available in the following languages:
 | Language     | Status   | Flag  | Completion                             |
 | :----------- | :------- | :---: | :------------------------------------- |
 | **English**  | Base     |  🇺🇸   | ![100%](https://geps.dev/progress/100) |
-| **Deutsch**  | Partial  |  🇩🇪   | ![81%](https://geps.dev/progress/81)   |
+| **Deutsch**  | Complete |  🇩🇪   | ![100%](https://geps.dev/progress/100) |
 | **Français** | Complete |  🇫🇷   | ![100%](https://geps.dev/progress/100) |
 | **正體中文** | Partial  |  🇹🇼   | ![81%](https://geps.dev/progress/81)   |
 | **Spanish**  | Partial  | 🇪🇸/🇲🇽 | ![81%](https://geps.dev/progress/81)   |
