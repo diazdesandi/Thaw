@@ -1680,6 +1680,32 @@ extension MenuBarItemManager {
         return nil
     }
 
+    /// Waits for a menu bar item's position to stabilize after a move.
+    ///
+    /// After a Cmd+drag move, the Window Server updates the item's window
+    /// position, but the owning app may take additional time to process the
+    /// change internally. If we click the item before it has settled, the
+    /// app may position its popup at the old location.
+    ///
+    /// This method polls the item's bounds until two consecutive reads
+    /// return the same value, up to a maximum wait time.
+    private nonisolated func waitForItemPositionToSettle(item: MenuBarItem) async {
+        let maxWait: Duration = .milliseconds(500)
+        let pollInterval: Duration = .milliseconds(50)
+        let startTime = ContinuousClock.now
+
+        var previousBounds = Bridging.getWindowBounds(for: item.windowID)
+
+        while ContinuousClock.now - startTime < maxWait {
+            await eventSleep(for: pollInterval)
+            let currentBounds = Bridging.getWindowBounds(for: item.windowID)
+            if currentBounds == previousBounds, currentBounds != nil {
+                return
+            }
+            previousBounds = currentBounds
+        }
+    }
+
     /// Schedules a timer for the given interval that rehides the
     /// temporarily shown items when fired.
     private func runRehideTimer(for interval: TimeInterval? = nil) {
@@ -1794,7 +1820,11 @@ extension MenuBarItemManager {
             runRehideTimer()
         }
 
-        await eventSleep(for: .milliseconds(100))
+        // Wait for the item's position to stabilize after the move. Some
+        // apps need time to process the window relocation before they can
+        // correctly position their popup in response to a click.
+        await waitForItemPositionToSettle(item: item)
+
         let idsBeforeClick = Set(Bridging.getWindowList(option: .onScreen))
 
         do {
