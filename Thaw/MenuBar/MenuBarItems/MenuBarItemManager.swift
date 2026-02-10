@@ -114,6 +114,11 @@ final class MenuBarItemManager: ObservableObject {
     /// Persisted bundle identifiers explicitly placed in always-hidden section.
     private var pinnedAlwaysHiddenBundleIDs = Set<String>()
 
+    /// Persisted mapping of item tag identifiers to their original section name for
+    /// temporarily shown items whose apps quit before they could be rehidden. When
+    /// the app relaunches, this allows us to move the item back to its original section.
+    private var pendingRelocations = [String: String]()
+
     /// Loads persisted known item identifiers.
     private func loadKnownItemIdentifiers() {
         let key = "MenuBarItemManager.knownItemIdentifiers"
@@ -148,6 +153,40 @@ final class MenuBarItemManager: ObservableObject {
         defaults.set(Array(pinnedAlwaysHiddenBundleIDs), forKey: "MenuBarItemManager.pinnedAlwaysHiddenBundleIDs")
     }
 
+    /// Loads persisted pending relocations for temporarily shown items
+    /// whose apps quit before they could be rehidden.
+    private func loadPendingRelocations() {
+        let key = "MenuBarItemManager.pendingRelocations"
+        if let stored = UserDefaults.standard.dictionary(forKey: key) as? [String: String] {
+            pendingRelocations = stored
+        }
+    }
+
+    /// Persists pending relocations.
+    private func persistPendingRelocations() {
+        let key = "MenuBarItemManager.pendingRelocations"
+        UserDefaults.standard.set(pendingRelocations, forKey: key)
+    }
+
+    /// Returns a persistable string key for the given section name.
+    private func sectionKey(for section: MenuBarSection.Name) -> String {
+        switch section {
+        case .visible: "visible"
+        case .hidden: "hidden"
+        case .alwaysHidden: "alwaysHidden"
+        }
+    }
+
+    /// Returns the section name for the given persisted key, if valid.
+    private func sectionName(for key: String) -> MenuBarSection.Name? {
+        switch key {
+        case "visible": .visible
+        case "hidden": .hidden
+        case "alwaysHidden": .alwaysHidden
+        default: nil
+        }
+    }
+
     /// The shared app state.
     private(set) weak var appState: AppState?
 
@@ -157,6 +196,7 @@ final class MenuBarItemManager: ObservableObject {
         self.appState = appState
         loadKnownItemIdentifiers()
         loadPinnedBundleIDs()
+        loadPendingRelocations()
         diagLog.debug("performSetup: loaded \(self.knownItemIdentifiers.count) known identifiers, \(self.pinnedHiddenBundleIDs.count) pinned hidden, \(self.pinnedAlwaysHiddenBundleIDs.count) pinned always-hidden")
         // On first launch (no known identifiers), avoid auto-relocating the leftmost item
         // so everything remains in the hidden section until the user interacts.
@@ -539,6 +579,15 @@ extension MenuBarItemManager {
                 previousWindowIDs: previousWindowIDs
             ) {
                 logger.debug("Relocated new leftmost items; scheduling recache")
+                Task { [weak self] in
+                    try? await Task.sleep(for: .milliseconds(300))
+                    await self?.cacheItemsRegardless(skipRecentMoveCheck: true)
+                }
+                return
+            }
+
+            if await relocatePendingItems(items, controlItems: controlItems) {
+                logger.debug("Relocated pending temporarily-shown items; scheduling recache")
                 Task { [weak self] in
                     try? await Task.sleep(for: .milliseconds(300))
                     await self?.cacheItemsRegardless(skipRecentMoveCheck: true)
@@ -1675,6 +1724,16 @@ extension MenuBarItemManager {
 
         let moveDestination: MoveDestination = .leftOfItem(anchor)
 
+        // Record the item's original section so we can relocate it if its app
+        // quits before we get a chance to rehide it (macOS persists the
+        // physical position set by the Cmd+drag, so on relaunch the icon
+        // would otherwise stay in the visible section).
+        let tagIdentifier = "\(item.tag.namespace):\(item.tag.title)"
+        if let originalSection = itemCache.address(for: item.tag)?.section {
+            pendingRelocations[tagIdentifier] = sectionKey(for: originalSection)
+            persistPendingRelocations()
+        }
+
         appState.hidEventManager.stopAll()
         defer {
             appState.hidEventManager.startAll()
@@ -1686,6 +1745,8 @@ extension MenuBarItemManager {
             try await move(item: item, to: moveDestination)
         } catch {
             logger.error("Error showing item: \(error, privacy: .public)")
+            pendingRelocations.removeValue(forKey: tagIdentifier)
+            persistPendingRelocations()
             return
         }
 
@@ -1782,6 +1843,9 @@ extension MenuBarItemManager {
             }
             do {
                 try await move(item: item, to: context.returnDestination)
+                // Successfully rehidden — remove the pending relocation entry.
+                let tagIdentifier = "\(context.tag.namespace):\(context.tag.title)"
+                pendingRelocations.removeValue(forKey: tagIdentifier)
             } catch {
                 context.rehideAttempts += 1
                 logger.warning(
@@ -1801,6 +1865,8 @@ extension MenuBarItemManager {
                 }
             }
         }
+
+        persistPendingRelocations()
 
         if failedContexts.isEmpty {
             logger.debug("All items were successfully rehidden")
@@ -1827,6 +1893,12 @@ extension MenuBarItemManager {
                 """
             )
             temporarilyShownItemContexts.remove(at: index)
+        }
+        // Also clear any pending relocation since the user explicitly
+        // placed the item in a new position.
+        let tagIdentifier = "\(tag.namespace):\(tag.title)"
+        if pendingRelocations.removeValue(forKey: tagIdentifier) != nil {
+            persistPendingRelocations()
         }
     }
 }
@@ -1921,6 +1993,102 @@ extension MenuBarItemManager {
         }
 
         return true
+    }
+
+    /// Relocates items whose apps quit while they were temporarily shown
+    /// in the visible section back to their original section.
+    ///
+    /// When `temporarilyShow` moves an item to the visible section, macOS
+    /// persists that position. If the app quits before rehide can move it
+    /// back, the icon will reappear in the visible section on relaunch.
+    /// This method checks for such items and moves them back.
+    ///
+    /// Returns `true` if any items were relocated.
+    private func relocatePendingItems(
+        _ items: [MenuBarItem],
+        controlItems: ControlItemPair
+    ) async -> Bool {
+        guard !pendingRelocations.isEmpty else {
+            return false
+        }
+
+        // Don't interfere with items that are currently temporarily shown —
+        // those are handled by the normal rehide flow.
+        let activelyShownTags = Set(temporarilyShownItemContexts.map {
+            "\($0.tag.namespace):\($0.tag.title)"
+        })
+
+        let hiddenBounds = bestBounds(for: controlItems.hidden)
+        var didRelocate = false
+
+        for (tagIdentifier, sectionString) in pendingRelocations {
+            guard !activelyShownTags.contains(tagIdentifier) else {
+                continue
+            }
+            guard let targetSection = sectionName(for: sectionString),
+                  targetSection != .visible
+            else {
+                // Nothing to do if the original section was visible.
+                pendingRelocations.removeValue(forKey: tagIdentifier)
+                continue
+            }
+
+            // Find the item in the current menu bar items.
+            guard let item = items.first(where: {
+                tagIdentifier == "\($0.tag.namespace):\($0.tag.title)"
+            }) else {
+                // Item not present yet (app hasn't relaunched). Keep the entry.
+                continue
+            }
+
+            // Check if the item is currently in the visible section (to the
+            // right of the hidden control item).
+            let itemBounds = bestBounds(for: item)
+            guard itemBounds.minX >= hiddenBounds.maxX else {
+                // Item is already in a hidden section — clean up.
+                pendingRelocations.removeValue(forKey: tagIdentifier)
+                continue
+            }
+
+            // Move the item back to the left of the hidden control item
+            // (into the hidden section).
+            let destination: MoveDestination
+            switch targetSection {
+            case .hidden:
+                destination = .leftOfItem(controlItems.hidden)
+            case .alwaysHidden:
+                if let alwaysHidden = controlItems.alwaysHidden {
+                    destination = .leftOfItem(alwaysHidden)
+                } else {
+                    destination = .leftOfItem(controlItems.hidden)
+                }
+            case .visible:
+                continue
+            }
+
+            logger.info(
+                """
+                Relocating \(item.logString, privacy: .public) back to \
+                \(targetSection.logString, privacy: .public) after app relaunch
+                """
+            )
+
+            do {
+                try await move(item: item, to: destination)
+                pendingRelocations.removeValue(forKey: tagIdentifier)
+                didRelocate = true
+            } catch {
+                logger.error(
+                    """
+                    Failed to relocate \(item.logString, privacy: .public) back to \
+                    \(targetSection.logString, privacy: .public): \(error, privacy: .public)
+                    """
+                )
+            }
+        }
+
+        persistPendingRelocations()
+        return didRelocate
     }
 
     /// Returns the best-known bounds for a menu bar item.
@@ -2106,8 +2274,10 @@ extension MenuBarItemManager {
         knownItemIdentifiers.removeAll()
         pinnedHiddenBundleIDs.removeAll()
         pinnedAlwaysHiddenBundleIDs.removeAll()
+        pendingRelocations.removeAll()
         persistKnownItemIdentifiers()
         persistPinnedBundleIDs()
+        persistPendingRelocations()
         temporarilyShownItemContexts.removeAll()
 
         // Prevent the first post-reset cache pass from treating the freshly reset items as "new".
