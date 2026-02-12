@@ -161,6 +161,8 @@ final class MenuBarSection {
             return
         }
 
+        menuBarManager.updateLastShowTimestamp()
+
         guard controlItem.isAddedToMenuBar else {
             // The section is disabled.
             // TODO: Can we use isEnabled for this check?
