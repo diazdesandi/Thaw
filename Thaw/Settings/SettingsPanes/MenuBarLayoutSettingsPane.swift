@@ -23,6 +23,10 @@ struct MenuBarLayoutSettingsPane: View {
         !itemManager.itemCache.managedItems.isEmpty
     }
 
+    private var areControlItemsDisabledBySystem: Bool {
+        itemManager.areControlItemsMissing
+    }
+
     var body: some View {
         if !ScreenCapture.cachedCheckPermissions() {
             missingScreenRecordingPermissions
@@ -63,7 +67,16 @@ struct MenuBarLayoutSettingsPane: View {
             if !hasItems {
                 VStack(spacing: 8) {
                     if loadDeadlineReached {
-                        Text("Unable to load menu bar items")
+                        VStack(spacing: 4) {
+                            if areControlItemsDisabledBySystem {
+                                Text("One or more section dividers are hidden by macOS")
+                                Text("Check System Settings > Menu Bar and enable \(Constants.displayName)")
+                                    .font(.calloutBox)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Unable to load menu bar items")
+                            }
+                        }
                     } else {
                         Text("Loading menu bar items…")
                     }
@@ -121,8 +134,8 @@ struct MenuBarLayoutSettingsPane: View {
                         Text("Reset Layout")
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(isResettingLayout)
+                .buttonStyle(.bordered)
+                .disabled(isResettingLayout || areControlItemsDisabledBySystem)
             }
 
             if let resetStatus {

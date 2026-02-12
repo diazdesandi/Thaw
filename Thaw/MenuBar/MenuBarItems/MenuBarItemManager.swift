@@ -96,6 +96,10 @@ final class MenuBarItemManager: ObservableObject {
     /// The current cache of menu bar items.
     @Published private(set) var itemCache = ItemCache(displayID: nil)
 
+    /// A Boolean value that indicates whether the control items for the
+    /// hidden sections are missing from the menu bar.
+    @Published private(set) var areControlItemsMissing = false
+
     /// Diagnostic logger for the menu bar item manager.
     fileprivate static nonisolated let diagLog = DiagLog(category: "MenuBarItemManager")
 
@@ -691,8 +695,15 @@ extension MenuBarItemManager {
             ) else {
                 // ???: Is clearing the cache the best thing to do here?
                 MenuBarItemManager.diagLog.warning("cacheItemsRegardless: Missing control item for hidden section (expected tag: \(MenuBarItemTag.hiddenControlItem)), clearing cache. Items remaining: \(items.count), windowIDs: \(itemWindowIDs.count). hiddenControlItemWID=\(hiddenControlItemWID.map { "\($0)" } ?? "nil"), alwaysHiddenControlItemWID=\(alwaysHiddenControlItemWID.map { "\($0)" } ?? "nil")")
+                await MainActor.run {
+                    self.areControlItemsMissing = true
+                }
                 itemCache = ItemCache(displayID: nil)
                 return
+            }
+
+            await MainActor.run {
+                self.areControlItemsMissing = false
             }
 
             MenuBarItemManager.diagLog.debug("cacheItemsRegardless: found control items, hidden windowID=\(controlItems.hidden.windowID), alwaysHidden=\(controlItems.alwaysHidden.map { "\($0.windowID)" } ?? "nil")")
