@@ -1,0 +1,50 @@
+name: CI
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/ci.yml"
+      - "Package.swift"
+      - "**/*.swift"
+  pull_request:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "Package.swift"
+      - "**/*.swift"
+  workflow_dispatch: # Remove once the workflow is tested and stable
+
+jobs:
+  lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      - name: Run SwiftLint
+        run: swiftlint --strict
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            runner: macos-14
+          - os: macos-15
+            runner: macos-15
+          - os: macos-26
+            runner: macos-latest
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build
+        run: |
+          xcodebuild -project Thaw.xcodeproj \
+            -scheme Thaw \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
