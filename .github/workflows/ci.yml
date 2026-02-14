@@ -38,6 +38,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      # Bypass project file format issues by using the latest Xcode version in every runner
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: latest
       - name: Build
         run: |
           xcodebuild -project Thaw.xcodeproj \
