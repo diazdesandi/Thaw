@@ -33,11 +33,11 @@ jobs:
       - run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
       - name: Build
         run: |
-          xcodebuild -project Thaw.xcodeproj \ 
+          xcodebuild -project Thaw.xcodeproj \
           -scheme Thaw \
           -destination platform=macOS \
-          -configuration Release \ 
-          MACOSX_DEPLOYMENT_TARGET=14.0 \ 
+          -configuration Release \
+          MACOSX_DEPLOYMENT_TARGET=14.0 \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
