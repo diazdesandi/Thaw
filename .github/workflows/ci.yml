@@ -32,4 +32,10 @@ jobs:
       # Issues with other Xcode versions, so we need to specify the version explicitly
       - run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
       - name: Build
-        run: xcodebuild -configuration Release -xcconfig "$GITHUB_WORKSPACE/Config/CI.xcconfig" build
+        run: |
+          xcodebuild \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
