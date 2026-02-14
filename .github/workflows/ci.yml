@@ -34,7 +34,7 @@ jobs:
       - name: Build
         run: |
           xcodebuild \
-          - scheme Thaw         
+          -scheme Thaw         
           -configuration Release \
           MACOSX_DEPLOYMENT_TARGET=14.0 \
           CODE_SIGN_IDENTITY="" \
