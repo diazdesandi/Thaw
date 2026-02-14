@@ -18,14 +18,28 @@ env:
 
 jobs:
   lint:
+    if: github.event.pull_request.draft == false
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            /usr/local/Homebrew
+            /usr/local/Cellar
+            /usr/local/Frameworks
+          # Maybe replace with brewfile
+          key: ${{ runner.os }}-brew-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-brew-
       - name: Install SwiftLint
-        run: brew install swiftlint
+        run: brew update && brew install swiftlint || brew upgrade swiftlint
       - name: Run SwiftLint
         run: swiftlint --strict
+
   build:
+    if: github.event.pull_request.draft == false
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
