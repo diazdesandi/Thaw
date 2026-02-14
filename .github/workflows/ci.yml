@@ -11,7 +11,10 @@ on:
       - ".github/workflows/ci.yml"
       - "Package.swift"
       - "**/*.swift"
-  workflow_dispatch: # Remove once the workflow is tested and stable
+  workflow_dispatch:
+
+env:
+  DEPLOYMENT_TARGET: "14.0"
 
 jobs:
   lint:
@@ -23,38 +26,17 @@ jobs:
       - name: Run SwiftLint
         run: swiftlint --strict
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-14
-            runner: macos-14
-          - os: macos-15
-            runner: macos-15
-          - os: macos-26
-            runner: macos-latest
-
-    runs-on: ${{ matrix.runner }}
-
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
-      - name: List available Xcode versions
-        run: ls /Applications | grep Xcode
-
-      - name: Show current version of Xcode
-        run: xcodebuild -version
-      # Bypass project file format issues by using the latest Xcode version in every runner
-      # - name: Setup Xcode version
-      #   uses: maxim-lobanov/setup-xcode@v1.6.0
-      #   with:
-      #     xcode-version: latest
-      # - name: Build
-      #   run: |
-      #     xcodebuild -project Thaw.xcodeproj \
-      #       -scheme Thaw \
-      #       -destination 'platform=macOS' \
-      #       -configuration Release \
-      #       CODE_SIGN_IDENTITY="" \
-      #       CODE_SIGNING_REQUIRED=NO \
-      #       CODE_SIGNING_ALLOWED=NO \
-      #       build
+      - name: Build
+        run: |
+          xcodebuild -project Thaw.xcodeproj \
+            -scheme Thaw \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            MACOSX_DEPLOYMENT_TARGET=${{ env.DEPLOYMENT_TARGET }} \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
