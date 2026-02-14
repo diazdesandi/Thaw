@@ -198,47 +198,72 @@ final class MenuBarManager: ObservableObject {
                     return
                 }
 
-                if sections.contains(where: { $0.controlItem.state == .showSection }) {
-                    guard let screen = NSScreen.screenWithMouse ?? NSScreen.main else {
+                // Check if hidden or alwaysHidden section is being shown
+                let hiddenSection = self.section(withName: .hidden)
+                let alwaysHiddenSection = self.section(withName: .alwaysHidden)
+
+                // Use isHidden property - when section is shown, isHidden is false
+                let isShowingHiddenSection = hiddenSection != nil && !hiddenSection!.isHidden
+                let isShowingAlwaysHiddenSection = alwaysHiddenSection != nil && !alwaysHiddenSection!.isHidden
+
+                if isShowingHiddenSection || isShowingAlwaysHiddenSection {
+                    // Use the screen with the active menu bar
+                    guard let screen = NSScreen.screenWithActiveMenuBar ?? NSScreen.main else {
                         return
                     }
 
                     Task {
-                        for delay in [25, 50, 100] {
-                            // The window server needs time to update window positions after expansion.
-                            try? await Task.sleep(for: .milliseconds(delay))
+                        // The window server needs time to update window positions after expansion.
+                        try? await Task.sleep(for: .milliseconds(50))
 
-                            // Get the application menu frame for the display.
-                            guard let applicationMenuFrame = screen.getApplicationMenuFrame() else {
-                                continue
+                        // Get the app menu frame for this screen
+                        guard let appMenuFrame = screen.getApplicationMenuFrame() else {
+                            return
+                        }
+
+                        // Get ALL menu bar items
+                        let allItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+
+                        // Filter to items on THIS screen by comparing Y coordinate with app menu's Y
+                        let menuBarY = appMenuFrame.origin.y
+                        let screenItems = allItems.filter { item in
+                            abs(item.bounds.origin.y - menuBarY) < 50
+                        }
+
+                        // Get the control items for this screen
+                        let hiddenControlItem = screenItems.first { $0.tag == .hiddenControlItem }
+                        let alwaysHiddenControlItem = screenItems.first { $0.tag == .alwaysHiddenControlItem }
+
+                        // Get all items that would be visible when section expands
+                        var sectionItems: [MenuBarItem] = []
+
+                        if isShowingAlwaysHiddenSection, let ahControl = alwaysHiddenControlItem {
+                            sectionItems = screenItems.filter { item in
+                                (item.bounds.minX >= appMenuFrame.minX && item.bounds.minX <= ahControl.bounds.minX) ||
+                                    item.bounds.minX > ahControl.bounds.maxX
                             }
-
-                            // Get all items.
-                            var items = await MenuBarItem.getMenuBarItems(on: screen.displayID, option: .activeSpace)
-
-                            // Filter the items down according to the currently enabled/shown sections.
-                            if
-                                let alwaysHiddenSection = self.section(withName: .alwaysHidden),
-                                alwaysHiddenSection.isEnabled
-                            {
-                                if alwaysHiddenSection.controlItem.state == .hideSection {
-                                    if let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
-                                        items.removeAll { $0.bounds.maxX <= alwaysHiddenControlItem.bounds.minX }
-                                    }
-                                }
+                        } else if isShowingHiddenSection, let hControl = hiddenControlItem {
+                            sectionItems = screenItems.filter { item in
+                                (item.bounds.minX >= appMenuFrame.minX && item.bounds.minX <= hControl.bounds.minX) ||
+                                    item.bounds.minX > hControl.bounds.maxX
                             }
+                        }
 
-                            // Get the leftmost item on the screen.
-                            guard let leftmostItem = items.min(by: { $0.bounds.minX < $1.bounds.minX }) else {
-                                continue
-                            }
+                        // Filter to only items to the right of app menu
+                        let visibleSectionItems = sectionItems.filter { $0.bounds.minX > appMenuFrame.minX }
 
-                            // If the item overlaps with the application menu frame (with a small buffer),
-                            // activate the app to hide the menu.
-                            if leftmostItem.bounds.minX <= (applicationMenuFrame.maxX + 30) {
-                                self.hideApplicationMenus()
-                                return
-                            }
+                        // Find the rightmost item
+                        guard let rightmostItem = visibleSectionItems.max(by: { $0.bounds.maxX < $1.bounds.maxX }) else {
+                            return
+                        }
+
+                        // Calculate space needed from app menu end to rightmost item
+                        let spaceNeededFromAppMenuEnd = rightmostItem.bounds.maxX - appMenuFrame.maxX
+                        let spaceAvailableFromAppMenuEnd = screen.frame.maxX - appMenuFrame.maxX
+
+                        // If items would extend past screen edge, hide the app menu
+                        if spaceNeededFromAppMenuEnd > spaceAvailableFromAppMenuEnd {
+                            self.hideApplicationMenus()
                         }
                     }
                 } else if isHidingApplicationMenus {
