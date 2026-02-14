@@ -38,18 +38,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      - name: List available Xcode versions
+        run: ls /Applications | grep Xcode
+
+      - name: Show current version of Xcode
+        run: xcodebuild -version
       # Bypass project file format issues by using the latest Xcode version in every runner
-      - name: Setup Xcode version
-        uses: maxim-lobanov/setup-xcode@v1.6.0
-        with:
-          xcode-version: latest
-      - name: Build
-        run: |
-          xcodebuild -project Thaw.xcodeproj \
-            -scheme Thaw \
-            -destination 'platform=macOS' \
-            -configuration Release \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+      # - name: Setup Xcode version
+      #   uses: maxim-lobanov/setup-xcode@v1.6.0
+      #   with:
+      #     xcode-version: latest
+      # - name: Build
+      #   run: |
+      #     xcodebuild -project Thaw.xcodeproj \
+      #       -scheme Thaw \
+      #       -destination 'platform=macOS' \
+      #       -configuration Release \
+      #       CODE_SIGN_IDENTITY="" \
+      #       CODE_SIGNING_REQUIRED=NO \
+      #       CODE_SIGNING_ALLOWED=NO \
+      #       build
