@@ -192,7 +192,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
                     let namespace = String(parts[0])
                     let title = String(parts[1])
-                    let tag = MenuBarItemTag(namespace: .string(namespace), title: title)
+                    let tag = MenuBarItemTag(namespace: .string(namespace), title: title, windowID: nil)
 
                     let captured = CapturedImage(cgImage: cgImage, scale: image.size.width > 0 ? CGFloat(cgImage.width) / image.size.width : 1.0)
                     loadedImages[tag] = captured

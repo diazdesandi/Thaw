@@ -157,12 +157,12 @@ struct MenuBarItem: CustomStringConvertible {
     }
 
     /// A unique identifier for storing custom names.
-    /// Uses windowID as part of the key to ensure stability even when namespace is a UUID.
+    /// Uses windowID as part of the key for non-system items to ensure stability and support multiple accounts.
     var uniqueIdentifier: String {
-        if tag.namespace.isUUID {
-            return "windowID:\(windowID)"
+        if tag.isSystemItem {
+            return "\(tag.namespace):\(tag.title)"
         }
-        return "\(tag.namespace):\(tag.title)"
+        return "\(tag.namespace):\(tag.title):\(windowID)"
     }
 
     /// Custom name for this item (persisted).
@@ -396,6 +396,7 @@ private extension MenuBarItemTag {
     init(uncheckedItemWindow itemWindow: WindowInfo) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow)
         self.title = itemWindow.title ?? ""
+        self.windowID = itemWindow.windowID
     }
 
     /// Creates a tag without checks.
@@ -408,6 +409,7 @@ private extension MenuBarItemTag {
     init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
         self.title = itemWindow.title ?? ""
+        self.windowID = itemWindow.windowID
     }
 }
 

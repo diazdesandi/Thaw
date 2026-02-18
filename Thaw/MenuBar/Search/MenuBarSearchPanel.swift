@@ -75,13 +75,28 @@ final class MenuBarSearchPanel: NSPanel {
 
     @MainActor
     private func startEditingSelectedItem() {
-        guard let selection = model.selection, case let .item(tag) = selection,
-              let item = appState?.itemManager.itemCache.managedItems.first(matching: tag)
+        guard let selection = model.selection, case let .item(tag, windowID) = selection,
+              let item = menuBarItem(for: selection)
         else {
             return
         }
         model.editingName = item.customName ?? ""
         model.editingItemTag = tag
+        model.editingItemWindowID = windowID
+    }
+
+    func menuBarItem(for selection: MenuBarSearchModel.ItemID)
+        -> MenuBarItem?
+    {
+        switch selection {
+        case let .item(tag, windowID):
+            if let windowID = windowID {
+                return appState?.itemManager.itemCache.managedItems.first(where: { $0.windowID == windowID })
+            }
+            return appState?.itemManager.itemCache.managedItems.first(matching: tag)
+        case .header:
+            return nil
+        }
     }
 
     @MainActor
@@ -92,9 +107,16 @@ final class MenuBarSearchPanel: NSPanel {
         Self.diagLog.debug("Saving editing name for tag: \(tag)")
         defer {
             model.editingItemTag = nil
+            model.editingItemWindowID = nil
             model.editingName = ""
         }
-        guard let item = appState?.itemManager.itemCache.managedItems.first(matching: tag) else {
+        let item = if let windowID = model.editingItemWindowID {
+            appState?.itemManager.itemCache.managedItems.first(where: { $0.windowID == windowID })
+        } else {
+            appState?.itemManager.itemCache.managedItems.first(matching: tag)
+        }
+
+        guard let item = item else {
             Self.diagLog.error("Cannot save editing name, no matching item")
             return
         }
@@ -472,7 +494,7 @@ private struct MenuBarSearchContentView: View {
 
             Spacer()
 
-            if let selection = model.selection, let item = menuBarItem(for: selection) {
+            if let selection = model.selection, let item = panel.menuBarItem(for: selection) {
                 ShowItemButton(item: item) {
                     performAction(for: item)
                 }
@@ -528,7 +550,7 @@ private struct MenuBarSearchContentView: View {
                     guard !item.isControlItem else {
                         continue
                     }
-                    let listItem = ListItem.item(id: .item(item.tag)) {
+                    let listItem = ListItem.item(id: .item(item.tag, windowID: item.windowID)) {
                         performAction(for: item)
                     } content: {
                         MenuBarSearchItemView(item: item)
@@ -559,19 +581,8 @@ private struct MenuBarSearchContentView: View {
         }
     }
 
-    private func menuBarItem(for selection: MenuBarSearchModel.ItemID)
-        -> MenuBarItem?
-    {
-        switch selection {
-        case let .item(tag):
-            return itemManager.itemCache.managedItems.first(matching: tag)
-        case .header:
-            return nil
-        }
-    }
-
     private func performAction(for item: MenuBarItem) {
-        if model.editingItemTag == item.tag {
+        if model.editingItemTag == item.tag, model.editingItemWindowID == item.windowID {
             return
         }
         closePanel()
@@ -746,7 +757,7 @@ private struct MenuBarSearchItemView: View {
 
     var body: some View {
         HStack {
-            if model.editingItemTag == item.tag {
+            if model.editingItemTag == item.tag, model.editingItemWindowID == item.windowID {
                 HStack(spacing: 8) {
                     labelIcon
                     TextField(item.autoDetectedName, text: $model.editingName)
@@ -759,6 +770,7 @@ private struct MenuBarSearchItemView: View {
                         }
                         .onExitCommand {
                             model.editingItemTag = nil
+                            model.editingItemWindowID = nil
                             model.editingName = ""
                         }
                         .onAppear {
