@@ -513,6 +513,9 @@ extension MenuBarItemManager {
         }
 
         func isValidForCaching(_ item: MenuBarItem) -> Bool {
+            if item.tag == .visibleControlItem {
+                return true
+            }
             if !item.canBeHidden {
                 return false
             }
@@ -2391,15 +2394,32 @@ extension MenuBarItemManager {
         let hiddenBounds = bestBounds(for: controlItems.hidden)
         let leftmostItems = items
             .filter {
-                // Must be left of hidden divider, movable, non-control.
+                // Must be left of hidden divider, movable.
+                // Include normal items AND the Thaw icon (which is a control item).
                 $0.bounds.maxX <= hiddenBounds.minX &&
                     $0.isMovable &&
-                    !$0.isControlItem
+                    (!$0.isControlItem || $0.tag == .visibleControlItem)
             }
             .sorted { $0.bounds.minX < $1.bounds.minX }
 
         guard !leftmostItems.isEmpty else {
             return false
+        }
+
+        // The Thaw icon must always appear in the visible section.
+        if let thawIcon = leftmostItems.first(where: { $0.tag == .visibleControlItem }) {
+            MenuBarItemManager.diagLog.info("Relocating Thaw icon \(thawIcon.logString) to visible section")
+            do {
+                try await move(
+                    item: thawIcon,
+                    to: .rightOfItem(controlItems.hidden),
+                    skipInputPause: true
+                )
+            } catch {
+                MenuBarItemManager.diagLog.error("Failed to relocate Thaw icon \(thawIcon.logString): \(error)")
+                return false
+            }
+            return true
         }
 
         // Non-hideable system items (screen recording, mic, camera indicators)

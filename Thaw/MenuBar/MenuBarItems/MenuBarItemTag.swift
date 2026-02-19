@@ -154,7 +154,7 @@ extension MenuBarItemTag {
     //
     /// An array of tags for items that can be moved, but cannot be hidden.
     static let nonHideableItems: [MenuBarItemTag] = {
-        var items = [audioVideoModule, faceTime, screenCaptureUI]
+        var items = [visibleControlItem, audioVideoModule, faceTime, screenCaptureUI]
         if #unavailable(macOS 15.3.2) {
             items.append(musicRecognition)
         }
